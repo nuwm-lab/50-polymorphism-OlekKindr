@@ -11,20 +11,27 @@ namespace LabWork
     {
         static void Main(string[] args)
         {
-            // Демонстрація роботи класів
-            Triangle t = new Triangle();
-            // Встановимо координати вершин трикутника
-            t.SetCoordinates((0, 0), (3, 0), (0, 4));
+            // Демонстрація: створимо об'єкти і покажемо поліморфізм
+            Triangle t = new Triangle((0, 0), (3, 0), (0, 4));
+            Tetrahedron tet = new Tetrahedron((0, 0), (3, 0), (0, 4), (0, 0));
+
+            // Покажемо явний виклик
             Console.WriteLine("Трикутник:");
             t.PrintCoordinates();
             Console.WriteLine($"Площа трикутника = {t.Area():F4}\n");
 
-            // Тетраедр визначимо як похідний клас від Triangle (четверта точка додається)
-            Tetrahedron tet = new Tetrahedron();
-            tet.SetCoordinates((0, 0), (3, 0), (0, 4), (0, 0)); // четверта точка на площині (задані в умові)
             Console.WriteLine("Тетраедр:");
             tet.PrintCoordinates();
-            Console.WriteLine($"Об'єм тетраедра = {tet.Volume():F4}");
+            Console.WriteLine($"Об'єм тетраедра = {tet.Volume():F4}\n");
+
+            // Демонстрація поліморфізму через базовий абстрактний клас Shape
+            Shape[] shapes = new Shape[] { t, tet };
+            Console.WriteLine("-- Поліморфний виклик Measure() на масиві Shape --");
+            foreach (var s in shapes)
+            {
+                s.Describe();
+                Console.WriteLine($"Measure = {s.Measure():F4}\n");
+            }
         }
     }
 
@@ -43,74 +50,106 @@ namespace LabWork
         public override string ToString() => $"({X}, {Y})";
     }
 
-    // Клас "трикутник"
-    public class Triangle
+    // Абстрактний базовий клас Shape для демонстрації поліморфізму
+    public abstract class Shape
     {
-        protected Point2D A, B, C;
+        // Описати фігуру
+        public abstract void Describe();
+
+        // Загальний метод для виміру: для Triangle повертатиме площу, для Tetrahedron — об'єм
+        public abstract double Measure();
+
+        // Зручний синонім
+        public double MeasureValue() => Measure();
+    }
+
+    // Клас "трикутник"
+    public class Triangle : Shape
+    {
+    protected Point2D _a, _b, _c;
+
+        public Triangle() { }
+
+        public Triangle((double x, double y) a, (double x, double y) b, (double x, double y) c)
+        {
+            SetCoordinates(a, b, c);
+        }
 
         // Встановлення координат вершин
         public virtual void SetCoordinates((double x, double y) a, (double x, double y) b, (double x, double y) c)
         {
-            A = new Point2D(a.x, a.y);
-            B = new Point2D(b.x, b.y);
-            C = new Point2D(c.x, c.y);
+            _a = new Point2D(a.x, a.y);
+            _b = new Point2D(b.x, b.y);
+            _c = new Point2D(c.x, c.y);
         }
 
         // Виведення координат
         public virtual void PrintCoordinates()
         {
-            Console.WriteLine($"A = {A}");
-            Console.WriteLine($"B = {B}");
-            Console.WriteLine($"C = {C}");
+            Console.WriteLine($"A = {_a}");
+            Console.WriteLine($"B = {_b}");
+            Console.WriteLine($"C = {_c}");
         }
 
-        // Обчислення площі трикутника (формула площі через координати / формула Шульца)
+        // Обчислення площі трикутника
         public virtual double Area()
         {
-            // Площа = 0.5 * | x1(y2 - y3) + x2(y3 - y1) + x3(y1 - y2) |
-            double x1 = A.X, y1 = A.Y;
-            double x2 = B.X, y2 = B.Y;
-            double x3 = C.X, y3 = C.Y;
+            double x1 = _a.X, y1 = _a.Y;
+            double x2 = _b.X, y2 = _b.Y;
+            double x3 = _c.X, y3 = _c.Y;
             double area = 0.5 * Math.Abs(x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2));
             return area;
         }
+
+        // Реалізація Shape
+        public override void Describe()
+        {
+            Console.WriteLine("Shape: Triangle");
+            PrintCoordinates();
+        }
+
+        public override double Measure() => Area();
     }
 
     // Похідний клас "тетраедр"
     public class Tetrahedron : Triangle
     {
-        protected Point2D D;
+        private Point2D _d;
 
-        // Перевантажуємо метод встановлення координат для 4 точок
+        public Tetrahedron() { }
+
+        public Tetrahedron((double x, double y) a, (double x, double y) b, (double x, double y) c, (double x, double y) d)
+            : base(a, b, c)
+        {
+            _d = new Point2D(d.x, d.y);
+        }
+
+        // Перевантаження: встановлення координат для 4 точок
         public void SetCoordinates((double x, double y) a, (double x, double y) b, (double x, double y) c, (double x, double y) d)
         {
             base.SetCoordinates(a, b, c);
-            D = new Point2D(d.x, d.y);
+            _d = new Point2D(d.x, d.y);
         }
 
         // Виведення координат (перевизначено)
         public override void PrintCoordinates()
         {
             base.PrintCoordinates();
-            Console.WriteLine($"D = {D}");
+            Console.WriteLine($"D = {_d}");
         }
 
-        // Обчислення об'єму тетраедра, якщо задані координати чотирьох вершин у 3D.
-        // Але в умові сказано, що точки знаходяться на площині, тому об'єм = 0.
-        // Щоб показати роботу, використаємо формулу об'єму для чотирьох точок у 3D,
-        // піднявши кожну 2D точку у простір як (x,y,0). Об'єм тоді буде 0.
+        // Обчислення об'єму тетраедра
         public double Volume()
         {
             // Відобразимо точки як (x,y,0)
             double[,] p = new double[4, 3]
             {
-                { A.X, A.Y, 0 },
-                { B.X, B.Y, 0 },
-                { C.X, C.Y, 0 },
-                { D.X, D.Y, 0 }
+                { _a.X, _a.Y, 0 },
+                { _b.X, _b.Y, 0 },
+                { _c.X, _c.Y, 0 },
+                { _d.X, _d.Y, 0 }
             };
 
-            // Об'єм = 1/6 * |det( B-A, C-A, D-A )|
             double[] BA = { p[1,0] - p[0,0], p[1,1] - p[0,1], p[1,2] - p[0,2] };
             double[] CA = { p[2,0] - p[0,0], p[2,1] - p[0,1], p[2,2] - p[0,2] };
             double[] DA = { p[3,0] - p[0,0], p[3,1] - p[0,1], p[3,2] - p[0,2] };
@@ -122,5 +161,8 @@ namespace LabWork
             double volume = Math.Abs(det) / 6.0;
             return volume;
         }
+
+        // Коли ми демонструємо Measure() з базового Shape, повертатимемо об'єм
+        public override double Measure() => Volume();
     }
 }
